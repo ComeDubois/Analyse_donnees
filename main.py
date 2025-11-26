@@ -1,70 +1,94 @@
 #coding:utf8
 
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import scipy
-import scipy.stats
-import math
 
-#Fonction pour ouvrir les fichiers
-def ouvrirUnFichier(nom):
-    with open(nom, "r") as fichier:
-        contenu = pd.read_csv(fichier)
-    return contenu
+# Source des données : https://www.data.gouv.fr/datasets/election-presidentielle-des-10-et-24-avril-2022-resultats-definitifs-du-1er-tour/
+with open("./data/resultats-elections-presidentielles-2022-1er-tour.csv","r") as fichier:
+    tableau = pd.read_csv(fichier)
 
-#Fonction pour convertir les données en données logarithmiques
-def conversionLog(liste):
-    log = []
-    for element in liste:
-        log.append(math.log(element))
-    return log
+# Question 5 : Afficher le contenu du fichier dans le terminal
+print(tableau)
 
-#Fonction pour trier par ordre décroissant les listes (îles et populations)
-def ordreDecroissant(liste):
-    liste.sort(reverse = True)
-    return liste
+# Question 6 : Afficher le nombre de lignes et de colonnes du tableau
+# Calcul du nombre de lignes
+nb_lignes = len(tableau)
+# Calcul du nombre de colonnes
+nb_colonnes = len(tableau.columns)
+# Affichage des résultats
+print("Nombre de lignes :", nb_lignes)
+print("Nombre de colonnes:", nb_colonnes)
 
-#Fonction pour obtenir le classement des listes spécifiques aux populations
-def ordrePopulation(pop, etat):
-    ordrepop = []
-    for element in range(0, len(pop)):
-        if np.isnan(pop[element]) == False:
-            ordrepop.append([float(pop[element]), etat[element]])
-    ordrepop = ordreDecroissant(ordrepop)
-    for element in range(0, len(ordrepop)):
-        ordrepop[element] = [element + 1, ordrepop[element][1]]
-    return ordrepop
-
-#Fonction pour obtenir l'ordre défini entre deux classements (listes spécifiques aux populations)
-def classementPays(ordre1, ordre2):
-    classement = []
-    if len(ordre1) <= len(ordre2):
-        for element1 in range(0, len(ordre2) - 1):
-            for element2 in range(0, len(ordre1) - 1):
-                if ordre2[element1][1] == ordre1[element2][1]:
-                    classement.append([ordre1[element2][0], ordre2[element1][0], ordre1[element2][1]])
+# Question 7 : Faire une liste sur le type statistique de chaque colonne
+print(tableau.dtypes)
+# Afficher proprement les types statistiques de chaque colonne à l'aide d'une boucle
+# Importer les fonctions nécessaires
+from pandas.api.types import is_integer_dtype, is_float_dtype, is_bool_dtype, is_object_dtype
+# Créer une liste (ou dictionnaire) des types simples
+types_colonnes = {}
+# Parcourir toutes les colonnes du DataFrame
+for colonne in tableau.columns:
+    if is_integer_dtype(tableau[colonne]):
+        types_colonnes[colonne] = "int"
+    elif is_float_dtype(tableau[colonne]):
+        types_colonnes[colonne] = "float"
+    elif is_bool_dtype(tableau[colonne]):
+        types_colonnes[colonne] = "bool"
+    elif is_object_dtype(tableau[colonne]):
+        types_colonnes[colonne] = "str"
     else:
-        for element1 in range(0, len(ordre1) - 1):
-            for element2 in range(0, len(ordre2) - 1):
-                if ordre2[element2][1] == ordre1[element1][1]:
-                    classement.append([ordre1[element1][0], ordre2[element2][0], ordre1[element][1]])
-    return classement
+        types_colonnes[colonne] = "autre"
+# Afficher la liste des types détectés
+for nom, type_var in types_colonnes.items():
+    print(f"La colonne '{nom}' est de type {type_var}.")
 
-#Partie sur les îles
-iles = pd.DataFrame(ouvrirUnFichier("./data/island-index.csv"))
+    # Question 8 : Afficher le nom des colonnes
+    nom_colonnes = tableau.head(0)
+print(nom_colonnes)
 
-#Attention ! Il va falloir utiliser des fonctions natives de Python dans les fonctions locales que je vous propose pour faire l'exercice. Vous devez caster l'objet Pandas en list().
+# Question 9 : Sélectionner le nombre des inscrits
+colonne_inscrits = tableau.Inscrits
+print(colonne_inscrits)
 
+# Question 10 : Calculer les effectifs de chaque colonne et les placer dans une liste
 
+# Initialiser une liste vide pour stocker les effectifs
+liste_effectifs = []
+# Parcourir chaque colonne du DataFrame
+for colonne in tableau.columns:
+    # Créer une condition pour afficher les effectifs uniquement des colonnes numériques
+    if is_integer_dtype(tableau[colonne]) or is_float_dtype(tableau[colonne]):
+        somme = tableau[colonne].sum()
+        liste_effectifs.append(float(somme))
+    else:
+        liste_effectifs.append(None)
 
+print(liste_effectifs)
 
+# Question 11 : Faire des diagrammes en barres du nombre des inscrits et des votants pour chaque département
 
+import matplotlib.pyplot as plt
 
-#Partie sur les populations des États du monde
-#Source. Depuis 2007, tous les ans jusque 2025, M. Forriez a relevé l'intégralité du nombre d'habitants dans chaque États du monde proposé par un numéro hors-série du monde intitulé États du monde. Vous avez l'évolution de la population et de la densité par année.
-monde = pd.DataFrame(ouvrirUnFichier("./data/Le-Monde-HS-Etats-du-monde-2007-2025.csv"))
-
-#Attention ! Il va falloir utiliser des fonctions natives de Python dans les fonctions locales que je vous propose pour faire l'exercice. Vous devez caster l'objet Pandas en list().
-
-
+# Regrouper les lignes par département et calculer la somme des inscrits et des votants pour chaque département
+agg = tableau.groupby("Code du département")[["Inscrits", "Votants"]].sum().reset_index()
+# récupérer les listes des départements, inscrits et votants
+departements = agg["Code du département"].tolist()
+inscrits = agg["Inscrits"].tolist()
+votants  = agg["Votants"].tolist()
+# Définir les paramètres de tracé
+w = 0.35
+x = list(range(len(departements)))
+fig, ax = plt.subplots(figsize=(10, 5))
+# Tracer les barres département par département (boucle demandée)
+for i in range(len(departements)):
+    ax.bar(x[i] - w/2, inscrits[i], width=w, label="Inscrits" if i == 0 else "")
+    ax.bar(x[i] + w/2, votants[i],  width=w, label="Votants"  if i == 0 else "")
+ # Mise en forme et affichage
+ax.set_xticks(x)
+ax.set_xticklabels(departements, rotation=90, ha="center")
+ax.set_ylabel("Nombre de personnes")
+ax.set_title("Inscrits et votants par département – Présidentielle 2022 (1er tour)")
+ax.legend()
+plt.tight_layout()
+plt.show()
+plt.savefig("./Seance-02/diagramme.png", dpi=300, bbox_inches="tight")
